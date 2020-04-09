@@ -3,7 +3,7 @@
 import logging
 
 from discord.ext.commands import Bot, when_mentioned_or
-from electionsbot.log import DiscordHandler
+from werewolfbot.log import DiscordHandler
 
 
 logger = logging.getLogger(__name__)
@@ -18,4 +18,4 @@ bot.log = logger
 
 
 # Load cogs
-bot.load_extension("electionsbot.cogs.general")
+bot.load_extension("werewolfbot.cogs.general")

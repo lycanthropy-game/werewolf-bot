@@ -7,7 +7,7 @@ import logging
 
 from discord import Color, Embed
 from discord.ext import commands
-from electionsbot.constants import LOGGING_CHANNEL_ID
+from werewolfbot.constants import LOGGING_CHANNEL_ID
 
 
 LEVEL_COLORS = {

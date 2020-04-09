@@ -14,3 +14,4 @@ def getenv(name: str, fallback: str = "") -> str:
 
 
 BOT_TOKEN = getenv("BOT_TOKEN")
+LOGGING_CHANNEL_ID = int(environ.get("LOGGING_CHANNEL_ID"))
