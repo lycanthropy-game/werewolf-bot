@@ -1,0 +1,73 @@
+---
+apiVersion: "apps/v1"
+kind: "Deployment"
+metadata:
+  name: "werewolfbot"
+  namespace: "default"
+  labels:
+    app: "werewolfbot"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "werewolfbot"
+  template:
+    metadata:
+      labels:
+        app: "werewolfbot"
+    spec:
+      containers:
+      - name: "werewolfbot"
+        image: "thebeanogamer/werewolfbot:latest"
+        env:
+        - name: "BOT_TOKEN"
+          valueFrom:
+            secretKeyRef:
+              name: "werewolf_creds"
+              key: "BOT_TOKEN"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: werewolf-db
+  labels:
+    name: werewolf-db
+spec:
+  replicas: 1
+  containers:
+    - image: launcher.gcr.io/google/mongodb3
+      name: mongo
+      volumeMounts:
+        - name: data
+          mountPath: /data/db
+          subPath: data
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: werewolf-data
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: werewolf-data
+  annotations:
+    volume.alpha.kubernetes.io/storage-class: default
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: "v1"
+kind: "Service"
+metadata:
+  name: "werewolf-db"
+  labels:
+    app: "werewolf-db"
+spec:
+  ports:
+  - port: 27017
+    name: "werewolf-db"
+  clusterIP: "None"
+  selector:
+    app: "werewolf-db"
