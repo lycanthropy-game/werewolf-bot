@@ -1,0 +1,103 @@
+trigger:
+- master
+
+pr: none
+
+stages:
+  - stage: Publish
+    jobs:
+      - job: Publish
+        displayName: Publish
+
+        pool:
+          vmImage: Ubuntu 18.04
+
+        steps:
+        - task: Docker@2
+          displayName: 'Publish to Docker Hub'
+          inputs:
+            containerRegistry: 'cdbot dockerhub'
+            repository: thebeanogamer/werewolfbot
+            Dockerfile: '$(System.DefaultWorkingDirectory)/Dockerfile'
+            tags: latest
+
+        - task: Docker@2
+          displayName: 'Publish to GitHub Packages'
+          inputs:
+            containerRegistry: 'GitHub Packages'
+            repository: 'thebeanogamer/werewolfbot/werewolfbot'
+            tags: latest
+  
+  - stage: Deploy
+    jobs:
+      - job: Deploy
+        displayName: Deploy
+
+        pool:
+          vmImage: Ubuntu 18.04
+
+        steps:
+        - task: Kubernetes@1
+          displayName: 'Deploy to Google Kubernetes Engine'
+          inputs:
+            connectionType: 'Kubernetes Service Connection'
+            kubernetesServiceEndpoint: 'Google Kubernetes Engine'
+            command: 'apply'
+            useConfigurationFile: true
+            configuration: '$(System.DefaultWorkingDirectory)/deployment.yaml'
+            forceUpdate: false
+            versionSpec: '1.15.0'
+        
+        - task: Kubernetes@1
+          displayName: 'Rolling Update Bot Container'
+          inputs:
+            connectionType: 'Kubernetes Service Connection'
+            kubernetesServiceEndpoint: 'Google Kubernetes Engine'
+            namespace: 'default'
+            command: 'set'
+            arguments: 'image deployment werewolfbot werewolfbot=thebeanogamer/werewolfbot:latest'
+        
+        - task: Kubernetes@1
+          displayName: 'Scale Down Bot Container'
+          inputs:
+            connectionType: 'Kubernetes Service Connection'
+            kubernetesServiceEndpoint: 'Google Kubernetes Engine'
+            namespace: 'default'
+            command: 'scale'
+            arguments: 'deployment werewolfbot --replicas=0'
+
+        - task: Kubernetes@1
+          displayName: 'Scale Up Bot Container'
+          inputs:
+            connectionType: 'Kubernetes Service Connection'
+            kubernetesServiceEndpoint: 'Google Kubernetes Engine'
+            namespace: 'default'
+            command: 'scale'
+            arguments: 'deployment werewolfbot --replicas=1'
+
+        - task: Kubernetes@1
+          displayName: 'Rolling Update Postgres Container'
+          inputs:
+            connectionType: 'Kubernetes Service Connection'
+            kubernetesServiceEndpoint: 'Google Kubernetes Engine'
+            namespace: 'default'
+            command: 'set'
+            arguments: 'image deployment werewolf-db werewolf-db=launcher.gcr.io/google/mongodb3'
+        
+        - task: Kubernetes@1
+          displayName: 'Scale Down DB Container'
+          inputs:
+            connectionType: 'Kubernetes Service Connection'
+            kubernetesServiceEndpoint: 'Google Kubernetes Engine'
+            namespace: 'default'
+            command: 'scale'
+            arguments: 'deployment werewolf-db --replicas=0'
+
+        - task: Kubernetes@1
+          displayName: 'Scale Up DB Container'
+          inputs:
+            connectionType: 'Kubernetes Service Connection'
+            kubernetesServiceEndpoint: 'Google Kubernetes Engine'
+            namespace: 'default'
+            command: 'scale'
+            arguments: 'deployment werewolf-db --replicas=1'
